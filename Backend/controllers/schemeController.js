@@ -85,14 +85,14 @@ exports.getSchemeById = async (req, res) => {
   
 // Create new Scheme (Admin)
 exports.createScheme = async (req, res) => {
-  const { name, description, criteria, required_documents } = req.body;
+  const { name, description, criteria, required_documents, budget } = req.body;
   const created_by = req.user.userId;
   const file = req.file;
 
   try {
     const result = await db.query(
-      'INSERT INTO schemes (name, description, criteria, required_documents, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [name, description, criteria || '{}', required_documents || '[]', created_by]
+      'INSERT INTO schemes (name, description, criteria, required_documents, created_by, budget) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [name, description, criteria || '{}', required_documents || '[]', created_by, budget || 0]
     );
 
     if (file) {
@@ -148,7 +148,17 @@ exports.deleteScheme = async (req, res) => {
 // Get all schemes
 exports.getAllSchemes = async (req, res) => {
   try {
-    const result = await db.query('SELECT id, name, description, source FROM schemes');
+    const result = await db.query(`
+      SELECT 
+        s.id, s.name, s.description, s.source, s.budget,
+        COUNT(br.id) AS total_applied,
+        COUNT(br.id) FILTER (WHERE br.status = 'APPROVED') AS total_approved,
+        COUNT(br.id) FILTER (WHERE br.status = 'REJECTED') AS total_rejected
+      FROM schemes s
+      LEFT JOIN benefit_requests br ON s.id = br.scheme_id
+      GROUP BY s.id
+      ORDER BY s.id DESC
+    `);
     res.json({status: 'success', data: result.rows});
   } catch (e) {
     res.status(500).json({error: e.message});

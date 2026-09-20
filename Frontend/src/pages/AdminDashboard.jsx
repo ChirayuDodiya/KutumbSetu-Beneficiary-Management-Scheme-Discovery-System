@@ -8,6 +8,7 @@ const AdminDashboard = () => {
     name: '',
     description: '',
     income_limit: '',
+    budget: '',
     caste_criteria: 'ANY',
     required_documents: ''
   });
@@ -49,12 +50,13 @@ const AdminDashboard = () => {
     data.append('description', formData.description);
     data.append('criteria', JSON.stringify(criteria));
     data.append('required_documents', JSON.stringify(docsArray));
+    data.append('budget', formData.budget ? parseFloat(formData.budget) : 0);
     data.append('file', file);
 
     try {
       await api.post('/schemes', data, { headers: { 'Content-Type': 'multipart/form-data' } });
       setMessage('✅ Scheme created and automatically ingested into the AI RAG database!');
-      setFormData({ name: '', description: '', income_limit: '', caste_criteria: 'ANY', required_documents: '' });
+      setFormData({ name: '', description: '', income_limit: '', budget: '', caste_criteria: 'ANY', required_documents: '' });
       setFile(null);
       fetchSchemes();
     } catch (err) {
@@ -111,6 +113,17 @@ const AdminDashboard = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Scheme Budget (Total Funds ')</label>
+                <input type="number" required className="w-full px-3 py-2 border rounded" placeholder="e.g. 10000000" value={formData.budget} onChange={e => setFormData({...formData, budget: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Required Documents</label>
+                <input type="text" required className="w-full px-3 py-2 border rounded" placeholder="Aadhaar, Income Certificate" value={formData.required_documents} onChange={e => setFormData({...formData, required_documents: e.target.value})} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Caste Criteria</label>
                 <select className="w-full px-3 py-2 border rounded" value={formData.caste_criteria} onChange={e => setFormData({...formData, caste_criteria: e.target.value})}>
                   <option value="ANY">Any Category (No restriction)</option>
@@ -118,10 +131,6 @@ const AdminDashboard = () => {
                   <option value="ST">ST</option>
                   <option value="SEBC">SEBC</option>
                 </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Required Documents</label>
-                <input type="text" required className="w-full px-3 py-2 border rounded" placeholder="Aadhaar, Income Certificate" value={formData.required_documents} onChange={e => setFormData({...formData, required_documents: e.target.value})} />
               </div>
             </div>
 
@@ -147,23 +156,42 @@ const AdminDashboard = () => {
           <h3 className="font-bold text-gray-800 mb-4 flex items-center">
             <LayoutList className="w-5 h-5 mr-2 text-indigo-700" /> Active Schemes
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {schemes.map(s => (
-              <div key={s.id} className="p-3 border border-gray-200 rounded flex justify-between items-start bg-gray-50">
-                <div>
-                  <h4 className="font-bold text-sm text-gray-800">{s.name}</h4>
-                  <p className="text-xs text-green-600 mt-1 flex items-center">
-                    <CheckCircle className="w-3 h-3 mr-1" /> Vector Embedded
-                  </p>
-                  {s.source && (
-                    <a href={s.source} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline mt-1 block">
-                      Download .md File
-                    </a>
-                  )}
-                </div>
-                <button onClick={() => handleDelete(s.id)} className="text-red-500 hover:text-red-700 p-1">
+              <div key={s.id} className="p-4 border border-gray-200 rounded flex flex-col bg-gray-50 relative">
+                <button onClick={() => handleDelete(s.id)} className="absolute top-4 right-4 text-red-500 hover:text-red-700 p-1">
                   <Trash2 className="w-4 h-4" />
                 </button>
+                
+                <h4 className="font-bold text-lg text-gray-800 pr-8">{s.name}</h4>
+                <p className="text-xs text-green-600 mt-1 flex items-center mb-3">
+                  <CheckCircle className="w-3 h-3 mr-1" /> Vector Embedded
+                </p>
+                
+                <div className="grid grid-cols-2 gap-4 text-sm mt-2 mb-3 bg-white p-3 rounded border border-gray-100">
+                  <div>
+                    <span className="text-gray-500 block text-xs">Total Budget</span>
+                    <strong className="text-gray-800">'{Number(s.budget).toLocaleString()}</strong>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 block text-xs">Total Applied</span>
+                    <strong className="text-blue-600">{s.total_applied}</strong>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 block text-xs">Approved</span>
+                    <strong className="text-green-600">{s.total_approved}</strong>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 block text-xs">Rejected</span>
+                    <strong className="text-red-600">{s.total_rejected}</strong>
+                  </div>
+                </div>
+
+                {s.source && (
+                  <a href={s.source} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline mt-1 block">
+                    View / Download .md File
+                  </a>
+                )}
               </div>
             ))}
             {schemes.length === 0 && <p className="text-sm text-gray-500 text-center py-4">No schemes uploaded yet.</p>}
