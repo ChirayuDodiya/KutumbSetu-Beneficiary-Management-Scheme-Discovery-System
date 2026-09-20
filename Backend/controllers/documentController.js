@@ -1,4 +1,4 @@
-const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
 const db = require('../config/db');
 
 // Initialize S3 Client targeting Supabase Storage S3 endpoint
@@ -87,5 +87,28 @@ exports.getFamilyDocuments = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
+exports.deleteDocument = async (req, res) => {
+  const docId = req.params.docId;
+  const userId = req.user.userId;
+  try {
+    const docRes = await db.query("SELECT d.*, f.created_by FROM documents d JOIN families f ON d.family_id = f.id WHERE d.id = $1", [docId]);
+    if (docRes.rows.length === 0) return res.status(404).json({ message: 'Not found' });
+    if (docRes.rows[0].created_by !== userId) return res.status(403).json({ message: 'Forbidden' });
+    const doc = docRes.rows[0];
+    if (s3 && doc.file_path) {
+      const urlParts = doc.file_path.split('/documents/');
+      if (urlParts.length > 1) {
+        const key = urlParts[1];
+        await s3.send(new DeleteObjectCommand({ Bucket: 'documents', Key: key }));
+      }
+    }
+    await db.query('DELETE FROM documents WHERE id = $1', [docId]);
+    res.status(200).json({ status: 'success', message: 'Deleted' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error' });
   }
 };

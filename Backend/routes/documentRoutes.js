@@ -15,4 +15,7 @@ router.post('/families/:familyId/documents', requireRole('CITIZEN'), upload.sing
 // Both Citizens and Officers can view docs
 router.get('/families/:familyId/documents', documentController.getFamilyDocuments);
 
+// Citizens delete docs
+router.delete('/documents/:docId', requireRole('CITIZEN'), documentController.deleteDocument);
+
 module.exports = router;

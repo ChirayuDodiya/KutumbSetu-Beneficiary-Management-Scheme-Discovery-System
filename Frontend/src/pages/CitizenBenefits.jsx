@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { Landmark, CheckCircle, XCircle, Info, ShieldCheck, FileText } from 'lucide-react';
+import { Landmark, CheckCircle, XCircle, ShieldCheck, FileText, Upload } from 'lucide-react';
 
 const CitizenBenefits = () => {
   const [family, setFamily] = useState(null);
   const [schemes, setSchemes] = useState([]);
+  const [myDocuments, setMyDocuments] = useState([]);
+  const [myRequests, setMyRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
   // Modal State
   const [selectedScheme, setSelectedScheme] = useState(null);
+  const [selectedDocs, setSelectedDocs] = useState({}); // { "Aadhaar Card": "https://..." }
   const [applying, setApplying] = useState(false);
   const navigate = useNavigate();
 
@@ -29,6 +32,12 @@ const CitizenBenefits = () => {
         if (fam.status === 'VERIFIED') {
           const schemeRes = await api.get(`/families/${fam.id}/schemes`);
           setSchemes(schemeRes.data.data);
+          
+          const docRes = await api.get(`/families/${fam.id}/documents`);
+          setMyDocuments(docRes.data.data);
+
+          const reqRes = await api.get('/benefit-requests');
+          setMyRequests(reqRes.data.data);
         }
       } catch (err) {
         setError('Failed to load data.');
@@ -39,12 +48,32 @@ const CitizenBenefits = () => {
     fetchData();
   }, []);
 
+  const openModal = (scheme) => {
+    setSelectedScheme(scheme);
+    setSelectedDocs({});
+  };
+
   const handleApply = async () => {
+    // Validate that all required docs are attached
+    const missingDocs = selectedScheme.required_documents.filter(doc => !selectedDocs[doc]);
+    if (missingDocs.length > 0) {
+      alert(`Please select your uploaded document for: ${missingDocs.join(', ')}`);
+      return;
+    }
+
     setApplying(true);
+    
+    // Create an array of attached document objects to save in the DB
+    const attached = Object.keys(selectedDocs).map(docName => ({
+      name: docName,
+      url: selectedDocs[docName]
+    }));
+
     try {
       await api.post('/benefit-requests', {
         family_id: family.id,
-        scheme_id: selectedScheme.id
+        scheme_id: selectedScheme.id,
+        attached_documents: attached
       });
       alert('Application submitted successfully!');
       setSelectedScheme(null);
@@ -87,6 +116,8 @@ const CitizenBenefits = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {schemes.map((scheme) => {
           const isEligible = scheme.evaluation.potentiallyApplicable;
+          const existingReq = myRequests.find(r => r.scheme_id === scheme.id);
+          
           return (
             <div key={scheme.id} className={`border rounded-lg shadow-sm bg-white overflow-hidden flex flex-col ${isEligible ? 'border-green-300' : 'border-gray-200'}`}>
               <div className={`px-4 py-3 border-b flex justify-between items-center ${isEligible ? 'bg-green-50' : 'bg-gray-50'}`}>
@@ -104,30 +135,41 @@ const CitizenBenefits = () => {
                 <div className="mb-4">
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Verdict</span>
                   {isEligible ? (
-                    <p className="text-sm text-green-700 font-medium flex items-center mt-1">
-                      Potentially Applicable
-                    </p>
+                    <div className="mt-1 text-sm text-green-700 font-medium">Eligible based on profile</div>
                   ) : (
-                    <p className="text-sm text-red-600 font-medium flex items-center mt-1">
-                      Not Applicable
-                    </p>
+                    <div className="mt-1 text-sm text-red-600">
+                      Not Eligible: {scheme.evaluation.failedChecks.map(c => c.rule).join(', ')}
+                    </div>
                   )}
                 </div>
               </div>
-
-              <div className="px-4 py-3 bg-gray-50 border-t flex justify-between items-center">
-                <button 
-                  onClick={() => setSelectedScheme(scheme)}
-                  className="text-blue-700 hover:text-blue-900 text-sm font-medium flex items-center"
-                >
-                  <Info className="w-4 h-4 mr-1" /> View Details
-                </button>
-                {isEligible && (
+              
+              <div className="p-4 border-t bg-gray-50 flex flex-col justify-end">
+                {existingReq && (existingReq.status === 'APPROVED' || existingReq.status === 'UNDER_REVIEW') ? (
                   <button 
-                    onClick={() => setSelectedScheme(scheme)}
-                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-sm font-medium transition"
+                    disabled
+                    className={`px-4 py-2 font-medium text-sm w-full rounded ${
+                      existingReq.status === 'APPROVED' ? 'bg-green-100 text-green-800 border border-green-200' :
+                      'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                    }`}
                   >
-                    Apply Now
+                    {existingReq.status === 'APPROVED' ? 'Application Approved' : 'Under Review'}
+                  </button>
+                ) : existingReq && existingReq.status === 'REJECTED' ? (
+                  <>
+                    <button 
+                      onClick={() => openModal(scheme)}
+                      className="px-4 py-2 bg-red-600 border border-red-700 text-white rounded hover:bg-red-700 font-medium text-sm w-full shadow-sm"
+                    >
+                      Re-apply (Previously Rejected)
+                    </button>
+                  </>
+                ) : (
+                  <button 
+                    onClick={() => openModal(scheme)}
+                    className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 font-medium text-sm w-full"
+                  >
+                    View Details & Apply
                   </button>
                 )}
               </div>
@@ -136,66 +178,62 @@ const CitizenBenefits = () => {
         })}
       </div>
 
-      {/* Details & Apply Modal */}
       {selectedScheme && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             
-            <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
-              <h3 className="text-lg font-bold text-gray-800">{selectedScheme.name}</h3>
-              <button onClick={() => setSelectedScheme(null)} className="text-gray-400 hover:text-gray-600">
-                <XCircle className="w-6 h-6" />
-              </button>
+            <div className="p-6 border-b">
+              <h2 className="text-xl font-bold text-gray-800">{selectedScheme.name}</h2>
             </div>
-
-            <div className="px-6 py-4 overflow-y-auto flex-1">
-              <p className="text-gray-700 mb-6">{selectedScheme.description}</p>
-
-              <div className="mb-6">
-                <h4 className="font-semibold text-gray-800 mb-2 border-b pb-1">Eligibility Engine Breakdown</h4>
-                
-                {selectedScheme.evaluation.passedChecks.length > 0 && (
-                  <div className="mb-3">
-                    <p className="text-sm font-medium text-green-700 flex items-center mb-1">
-                      <CheckCircle className="w-4 h-4 mr-1" /> Satisfied Conditions
-                    </p>
-                    <ul className="list-disc pl-6 text-sm text-gray-600 space-y-1">
-                      {selectedScheme.evaluation.passedChecks.map((check, i) => <li key={i}>{check}</li>)}
-                    </ul>
-                  </div>
-                )}
-
-                {selectedScheme.evaluation.failedChecks.length > 0 && (
-                  <div>
-                    <p className="text-sm font-medium text-red-600 flex items-center mb-1">
-                      <XCircle className="w-4 h-4 mr-1" /> Failed Conditions
-                    </p>
-                    <ul className="list-disc pl-6 text-sm text-gray-600 space-y-1">
-                      {selectedScheme.evaluation.failedChecks.map((check, i) => <li key={i}>{check}</li>)}
-                    </ul>
-                  </div>
-                )}
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <h4 className="font-bold text-gray-700 mb-1">Description</h4>
+                <p className="text-gray-600 text-sm">{selectedScheme.description}</p>
               </div>
 
-              <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
-                <h4 className="font-semibold text-blue-800 mb-1 flex items-center">
-                  <FileText className="w-4 h-4 mr-1" /> Required Documents
-                </h4>
-                <p className="text-sm text-blue-700">
-                  If you apply, an officer will review your family profile. You will need to upload required documents like Income Certificate or Aadhaar Card in your profile to complete the verification.
-                </p>
+              <div>
+                <h4 className="font-bold text-gray-700 mb-2">Required Documents (Must Attach)</h4>
+                {selectedScheme.required_documents.length === 0 ? (
+                  <p className="text-sm text-gray-500">No documents required.</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {selectedScheme.required_documents.map((doc, idx) => (
+                      <li key={idx} className="p-3 border rounded bg-blue-50">
+                        <span className="font-semibold text-sm text-gray-800 block mb-1">{doc}</span>
+                        <select 
+                          className="w-full border-gray-300 rounded text-sm p-2"
+                          value={selectedDocs[doc] || ''}
+                          onChange={(e) => setSelectedDocs({...selectedDocs, [doc]: e.target.value})}
+                        >
+                          <option value="">-- Select from My Documents --</option>
+                          {myDocuments.map(md => (
+                            <option key={md.id} value={md.file_path}>{md.document_type}</option>
+                          ))}
+                        </select>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {myDocuments.length === 0 && selectedScheme.required_documents.length > 0 && (
+                  <p className="text-xs text-red-600 mt-2 flex items-center">
+                    <Upload className="w-3 h-3 mr-1" /> You have not uploaded any documents to your vault. Please go to "My Documents" first.
+                  </p>
+                )}
               </div>
-
             </div>
 
-            <div className="px-6 py-4 border-t bg-gray-50 flex justify-end rounded-b-lg space-x-3">
-              <button onClick={() => setSelectedScheme(null)} className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium">
-                Close
+            <div className="p-4 border-t bg-gray-50 flex justify-end space-x-3">
+              <button 
+                onClick={() => setSelectedScheme(null)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 font-medium rounded hover:bg-gray-300"
+              >
+                Cancel
               </button>
               {selectedScheme.evaluation.potentiallyApplicable && (
                 <button 
                   onClick={handleApply}
-                  disabled={applying}
+                  disabled={applying || (selectedScheme.required_documents.length > 0 && myDocuments.length === 0)}
                   className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-medium disabled:opacity-50"
                 >
                   {applying ? 'Submitting...' : 'Submit Official Application'}

@@ -194,11 +194,24 @@ const OfficerRequests = () => {
               </div>
 
               <div className="bg-blue-50 p-4 rounded border border-blue-200">
-                <h4 className="font-semibold text-blue-800 mb-2">Required Documents to Verify manually</h4>
-                <p className="text-sm text-blue-700 mb-2">Please ensure you have physically verified or checked the uploads for:</p>
-                <ul className="list-disc pl-6 text-sm text-blue-800 space-y-1">
-                  {selectedReq.required_documents?.map((doc, i) => <li key={i}>{doc}</li>)}
-                </ul>
+                <h4 className="font-semibold text-blue-800 mb-2 flex items-center">
+                  <FileText className="w-4 h-4 mr-2" /> Citizen Uploaded Documents
+                </h4>
+                <p className="text-sm text-blue-700 mb-2">Please verify the proof provided by the citizen:</p>
+                {selectedReq.attached_documents && selectedReq.attached_documents.length > 0 ? (
+                  <ul className="list-disc pl-6 text-sm text-blue-800 space-y-2 mt-3">
+                    {selectedReq.attached_documents.map((doc, i) => (
+                      <li key={i}>
+                        <span className="font-semibold">{doc.name}:</span>{' '}
+                        <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                          View File
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-red-600 mt-2">No documents attached.</p>
+                )}
               </div>
 
               {selectedReq.status === 'UNDER_REVIEW' && (

@@ -3,7 +3,7 @@ const { evaluate } = require('../utils/ruleEngine');
 
 // E1: Create a Benefit Request (Citizen)
 exports.createRequest = async (req, res) => {
-  const { family_id, scheme_id } = req.body;
+  const { family_id, scheme_id, attached_documents } = req.body;
   const userId = req.user.userId;
 
   if (!family_id || !scheme_id) {
@@ -28,11 +28,28 @@ exports.createRequest = async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Family does not meet the criteria for this scheme', code: 'NOT_APPLICABLE' });
     }
 
-    // Insert request (Duplicate checked by DB UNIQUE constraint)
+    // Check for existing request
+    const existingReqRes = await db.query('SELECT * FROM benefit_requests WHERE family_id = $1 AND scheme_id = $2', [family_id, scheme_id]);
+    if (existingReqRes.rows.length > 0) {
+      const existingReq = existingReqRes.rows[0];
+      if (existingReq.status === 'UNDER_REVIEW' || existingReq.status === 'APPROVED') {
+        return res.status(400).json({ status: 'error', message: 'A request for this scheme already exists', code: 'DUPLICATE_REQUEST' });
+      }
+      
+      // If rejected, update the existing row
+      const result = await db.query(`
+        UPDATE benefit_requests 
+        SET status = 'UNDER_REVIEW', attached_documents = $1, requested_at = CURRENT_TIMESTAMP, rejection_reason = NULL
+        WHERE id = $2 RETURNING *
+      `, [JSON.stringify(attached_documents || []), existingReq.id]);
+      return res.status(200).json({ status: 'success', data: result.rows[0] });
+    }
+
+    // Insert new request
     const result = await db.query(`
-      INSERT INTO benefit_requests (family_id, scheme_id, status)
-      VALUES ($1, $2, 'UNDER_REVIEW') RETURNING *
-    `, [family_id, scheme_id]);
+      INSERT INTO benefit_requests (family_id, scheme_id, status, attached_documents)
+      VALUES ($1, $2, 'UNDER_REVIEW', $3) RETURNING *
+    `, [family_id, scheme_id, JSON.stringify(attached_documents || [])]);
 
     res.status(201).json({ status: 'success', data: result.rows[0] });
   } catch (err) {
