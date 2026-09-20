@@ -8,6 +8,7 @@ router.use(authenticate);
 router.use(requireRole('CITIZEN'));
 
 router.post('/', familyController.createFamily);
+router.get('/my', familyController.getMyFamily);
 router.post('/:id/members', familyController.addMember);
 router.post('/:id/submit', familyController.submitFamily);
 router.get('/:id', familyController.getFamily);

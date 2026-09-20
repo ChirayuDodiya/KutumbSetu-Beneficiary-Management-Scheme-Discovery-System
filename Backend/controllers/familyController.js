@@ -131,3 +131,22 @@ exports.getMembers = async (req, res) => {
     res.status(500).json({ status: 'error', message: 'Internal server error', code: 'SERVER_ERROR' });
   }
 };
+  
+// Get My Family (Citizen)  
+exports.getMyFamily = async (req, res) => {  
+  const userId = req.user.userId;  
+  
+  try {  
+    const famRes = await db.query('SELECT * FROM families WHERE created_by = $1', [userId]);  
+    if (famRes.rows.length === 0) return res.status(200).json({ status: 'success', data: null });  
+  
+    const family = famRes.rows[0];  
+    const memRes = await db.query('SELECT * FROM family_members WHERE family_id = $1', [family.id]);  
+    family.members = memRes.rows;  
+  
+    res.status(200).json({ status: 'success', data: family });  
+  } catch (err) {  
+    console.error(err);  
+    res.status(500).json({ status: 'error', message: 'Internal server error', code: 'SERVER_ERROR' });  
+  }  
+};
