@@ -155,6 +155,11 @@ const AdminDashboard = () => {
                   <p className="text-xs text-green-600 mt-1 flex items-center">
                     <CheckCircle className="w-3 h-3 mr-1" /> Vector Embedded
                   </p>
+                  {s.source && (
+                    <a href={s.source} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline mt-1 block">
+                      Download .md File
+                    </a>
+                  )}
                 </div>
                 <button onClick={() => handleDelete(s.id)} className="text-red-500 hover:text-red-700 p-1">
                   <Trash2 className="w-4 h-4" />

@@ -1,5 +1,22 @@
 const db = require('../config/db');
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const fs = require('fs');
+const { ingestSingleFile } = require('../utils/ragEngine');
 const { evaluate } = require('../utils/ruleEngine');
+
+// Initialize S3 Client
+let s3 = null;
+if (process.env.SUPABASE_API_URL && process.env.ACCESS_KEY && process.env.SECRET_ACCESS_KEY) {
+  s3 = new S3Client({
+    forcePathStyle: true,
+    region: 'ap-south-1',
+    endpoint: process.env.SUPABASE_API_URL,
+    credentials: {
+      accessKeyId: process.env.ACCESS_KEY,
+      secretAccessKey: process.env.SECRET_ACCESS_KEY,
+    }
+  });
+}
 
 // Get applicable schemes for a specific family
 exports.getApplicableSchemes = async (req, res) => {
@@ -67,7 +84,6 @@ exports.getSchemeById = async (req, res) => {
 };
   
 // Create new Scheme (Admin)
-const { ingestSingleFile } = require('../utils/ragEngine');
 exports.createScheme = async (req, res) => {
   const { name, description, criteria, required_documents } = req.body;
   const created_by = req.user.userId;
@@ -80,9 +96,32 @@ exports.createScheme = async (req, res) => {
     );
 
     if (file) {
+      // 1. Vector DB Ingestion
       await ingestSingleFile(file.path, name);
-      const fs = require('fs');
-      fs.unlinkSync(file.path); // Delete the temporary multer file
+      
+      // 2. Upload to Supabase Storage
+      if (s3) {
+        const fileContent = fs.readFileSync(file.path);
+        const fileExt = file.originalname.split('.').pop();
+        const filePath = `schemes/${Date.now()}_${name.replace(/\s+/g, '_')}.${fileExt}`;
+        const command = new PutObjectCommand({
+          Bucket: 'documents',
+          Key: filePath,
+          Body: fileContent,
+          ContentType: file.mimetype || 'text/markdown'
+        });
+        await s3.send(command);
+        console.log('✅ Uploaded scheme file to Supabase S3 Object Storage');
+
+        // Update the source URL in the database
+        const projectUrl = process.env.SUPABASE_API_URL.replace('/storage/v1/s3', '');
+        const fileUrl = `${projectUrl}/storage/v1/object/public/documents/${filePath}`;
+        await db.query('UPDATE schemes SET source = $1 WHERE id = $2', [fileUrl, result.rows[0].id]);
+        result.rows[0].source = fileUrl;
+      }
+
+      // 3. Delete Temp File
+      fs.unlinkSync(file.path);
     }
 
     res.status(201).json({ status: 'success', data: result.rows[0] });
@@ -106,10 +145,12 @@ exports.deleteScheme = async (req, res) => {
   }
 };
   
-// Get all schemes  
-exports.getAllSchemes = async (req, res) => {  
-  try {  
-    const result = await db.query('SELECT id, name, description FROM schemes');  
-    res.json({status: 'success', data: result.rows});  
-  } catch (e) { res.status(500).json({error: e.message}); }  
-}; 
+// Get all schemes
+exports.getAllSchemes = async (req, res) => {
+  try {
+    const result = await db.query('SELECT id, name, description, source FROM schemes');
+    res.json({status: 'success', data: result.rows});
+  } catch (e) {
+    res.status(500).json({error: e.message});
+  }
+};

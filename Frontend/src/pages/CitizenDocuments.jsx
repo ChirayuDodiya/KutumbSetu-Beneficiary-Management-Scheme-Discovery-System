@@ -20,7 +20,7 @@ const CitizenDocuments = () => {
       setFamily(fam);
       
       if (fam) {
-        const docRes = await api.get(`/documents/family/${fam.id}`);
+        const docRes = await api.get(`/families/${fam.id}/documents`);
         setDocuments(docRes.data.data);
       }
     } catch (err) {
@@ -49,7 +49,7 @@ const CitizenDocuments = () => {
     formData.append('file', file);
 
     try {
-      await api.post(`/documents/upload/${family.id}`, formData, {
+      await api.post(`/families/${family.id}/documents`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setSuccess('✅ Document successfully uploaded to Supabase Storage!');

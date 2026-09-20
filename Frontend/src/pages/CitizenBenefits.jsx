@@ -96,7 +96,11 @@ const CitizenBenefits = () => {
               
               <div className="p-4 flex-1">
                 <p className="text-sm text-gray-600 mb-4 line-clamp-3">{scheme.description}</p>
-                
+                {scheme.source && (
+                  <a href={scheme.source} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center mb-4">
+                    <FileText className="w-3 h-3 mr-1" /> Read Official Guidelines
+                  </a>
+                )}
                 <div className="mb-4">
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Verdict</span>
                   {isEligible ? (
