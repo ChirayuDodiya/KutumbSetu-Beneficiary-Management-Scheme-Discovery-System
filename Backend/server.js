@@ -36,7 +36,15 @@ app.use('/api/officer', officerRoutes);
 
 // Scheme Routes
 const schemeRoutes = require('./routes/schemeRoutes');
-app.use('/api', schemeRoutes); // Because routes are /api/families/:id/schemes and /api/schemes/:id
+app.use('/api', schemeRoutes);
+
+// Request Routes
+const requestRoutes = require('./routes/requestRoutes');
+app.use('/api', requestRoutes);
+
+// Assistant Routes
+const assistantRoutes = require('./routes/assistantRoutes');
+app.use('/api/assistant', assistantRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
