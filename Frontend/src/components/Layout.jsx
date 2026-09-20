@@ -2,6 +2,7 @@ import React, { useContext } from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { ShieldCheck, LogOut, UserCircle } from 'lucide-react';
+import AssistantWidget from './AssistantWidget';
 
 const Layout = () => {
   const { user, logout } = useContext(AuthContext);
@@ -28,9 +29,26 @@ const Layout = () => {
             <div className="flex items-center space-x-6">
               {user ? (
                 <>
-                  <div className="flex items-center space-x-2 text-sm">
+                  <div className="hidden md:flex items-center space-x-4 mr-4">
+                    {user.role === 'CITIZEN' && (
+                      <>
+                        <Link to="/citizen/dashboard" className="text-gray-300 hover:text-white text-sm font-medium">My Family</Link>
+                        <Link to="/citizen/requests" className="text-gray-300 hover:text-white text-sm font-medium">My Applications</Link>
+                      </>
+                    )}
+                    {user.role === 'OFFICER' && (
+                      <>
+                        <Link to="/officer/dashboard" className="text-gray-300 hover:text-white text-sm font-medium">Families</Link>
+                        <Link to="/officer/requests" className="text-gray-300 hover:text-white text-sm font-medium">Applications</Link>
+                      </>
+                    )}
+                    {user.role === 'ADMIN' && (
+                      <Link to="/admin/dashboard" className="text-gray-300 hover:text-white text-sm font-medium">Admin Portal</Link>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm border-l border-blue-700 pl-4">
                     <UserCircle className="h-5 w-5 text-gray-300" />
-                    <span className="font-medium">
+                    <span className="font-medium text-gray-100 hidden sm:block">
                       {user.name} ({user.role === 'OFFICER' ? 'Officer' : 'Citizen'})
                     </span>
                   </div>
@@ -39,7 +57,7 @@ const Layout = () => {
                     className="flex items-center space-x-1 bg-blue-800 hover:bg-blue-700 px-3 py-1.5 rounded transition"
                   >
                     <LogOut className="h-4 w-4" />
-                    <span>Logout</span>
+                    <span className="hidden sm:inline">Logout</span>
                   </button>
                 </>
               ) : (
@@ -62,6 +80,9 @@ const Layout = () => {
           <p className="mt-1">Designed for the Pravi Hackathon.</p>
         </div>
       </footer>
+
+      {/* Global AI Assistant Widget (Only visible if logged in) */}
+      {user && <AssistantWidget />}
     </div>
   );
 };

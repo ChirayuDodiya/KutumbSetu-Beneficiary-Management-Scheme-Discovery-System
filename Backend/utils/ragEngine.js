@@ -23,7 +23,7 @@ const embeddings = new HuggingFaceInferenceEmbeddings({
 // Initialize Groq LLM
 const llm = new ChatGroq({
   apiKey: process.env.GROQ_API_KEY,
-  modelName: "llama3-8b-8192", 
+  model: "openai/gpt-oss-120b", 
   temperature: 0
 });
 
@@ -112,7 +112,36 @@ Answer:`);
   };
 };
 
+// Ingest a single new markdown file
+const ingestSingleFile = async (filePath, originalName) => {
+  console.log(`Starting ingestion for single file: ${originalName}`);
+  const content = fs.readFileSync(filePath, 'utf8');
+  const rawDoc = new Document({ pageContent: content, metadata: { source: originalName } });
+
+  const textSplitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 500,
+    chunkOverlap: 50,
+  });
+  
+  const docs = await textSplitter.splitDocuments([rawDoc]);
+
+  const vectorStore = await PGVectorStore.initialize(embeddings, {
+    pool: pool,
+    tableName: "scheme_vectors",
+    columns: {
+      idColumnName: "id",
+      vectorColumnName: "embedding",
+      contentColumnName: "content",
+      metadataColumnName: "metadata",
+    }
+  });
+
+  await vectorStore.addDocuments(docs);
+  console.log(`✅ Ingested ${docs.length} chunks from ${originalName} into Supabase pgvector!`);
+};
+
 module.exports = {
   ingestDocuments,
+  ingestSingleFile,
   askQuestion
 };

@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import { AuthContext } from '../../context/AuthContext';
@@ -11,11 +11,22 @@ const Signup = () => {
     mobile: '',
     email: '',
     password: '',
-    employee_id: ''
+    employee_id: '',
+    department: 'Revenue',
+    designation: 'Talati'
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useContext(AuthContext);
+  const { login, user } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'ADMIN') navigate('/admin/dashboard');
+      else if (user.role === 'OFFICER') navigate('/officer/dashboard');
+      else navigate('/citizen/dashboard');
+    }
+  }, [user, navigate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

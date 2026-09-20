@@ -48,7 +48,7 @@ const CitizenBenefits = () => {
       });
       alert('Application submitted successfully!');
       setSelectedScheme(null);
-      // Navigate to My Requests (G5) when ready. We'll just close modal for now.
+      navigate('/citizen/requests');
     } catch (err) {
       if (err.response?.data?.code === 'ALREADY_APPLIED') {
         alert('You have already applied for this scheme.');
@@ -86,7 +86,7 @@ const CitizenBenefits = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {schemes.map((scheme) => {
-          const isEligible = scheme.eligibility.potentiallyApplicable;
+          const isEligible = scheme.evaluation.potentiallyApplicable;
           return (
             <div key={scheme.id} className={`border rounded-lg shadow-sm bg-white overflow-hidden flex flex-col ${isEligible ? 'border-green-300' : 'border-gray-200'}`}>
               <div className={`px-4 py-3 border-b flex justify-between items-center ${isEligible ? 'bg-green-50' : 'bg-gray-50'}`}>
@@ -150,24 +150,24 @@ const CitizenBenefits = () => {
               <div className="mb-6">
                 <h4 className="font-semibold text-gray-800 mb-2 border-b pb-1">Eligibility Engine Breakdown</h4>
                 
-                {selectedScheme.eligibility.passedChecks.length > 0 && (
+                {selectedScheme.evaluation.passedChecks.length > 0 && (
                   <div className="mb-3">
                     <p className="text-sm font-medium text-green-700 flex items-center mb-1">
                       <CheckCircle className="w-4 h-4 mr-1" /> Satisfied Conditions
                     </p>
                     <ul className="list-disc pl-6 text-sm text-gray-600 space-y-1">
-                      {selectedScheme.eligibility.passedChecks.map((check, i) => <li key={i}>{check}</li>)}
+                      {selectedScheme.evaluation.passedChecks.map((check, i) => <li key={i}>{check}</li>)}
                     </ul>
                   </div>
                 )}
 
-                {selectedScheme.eligibility.failedChecks.length > 0 && (
+                {selectedScheme.evaluation.failedChecks.length > 0 && (
                   <div>
                     <p className="text-sm font-medium text-red-600 flex items-center mb-1">
                       <XCircle className="w-4 h-4 mr-1" /> Failed Conditions
                     </p>
                     <ul className="list-disc pl-6 text-sm text-gray-600 space-y-1">
-                      {selectedScheme.eligibility.failedChecks.map((check, i) => <li key={i}>{check}</li>)}
+                      {selectedScheme.evaluation.failedChecks.map((check, i) => <li key={i}>{check}</li>)}
                     </ul>
                   </div>
                 )}
@@ -188,7 +188,7 @@ const CitizenBenefits = () => {
               <button onClick={() => setSelectedScheme(null)} className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium">
                 Close
               </button>
-              {selectedScheme.eligibility.potentiallyApplicable && (
+              {selectedScheme.evaluation.potentiallyApplicable && (
                 <button 
                   onClick={handleApply}
                   disabled={applying}

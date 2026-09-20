@@ -65,3 +65,27 @@ exports.getSchemeById = async (req, res) => {
     res.status(500).json({ status: 'error', message: 'Internal server error', code: 'SERVER_ERROR' });
   }
 };
+  
+// Create new Scheme (Admin)
+const { ingestSingleFile } = require('../utils/ragEngine');
+exports.createScheme = async (req, res) => {
+  const { name, description, criteria, required_documents } = req.body;
+  const created_by = req.user.userId;
+  const file = req.file;
+
+  try {
+    const result = await db.query(
+      'INSERT INTO schemes (name, description, criteria, required_documents, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [name, description, criteria || '{}', required_documents || '[]', created_by]
+    );
+
+    if (file) {
+      await ingestSingleFile(file.path, file.originalname);
+    }
+
+    res.status(201).json({ status: 'success', data: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
