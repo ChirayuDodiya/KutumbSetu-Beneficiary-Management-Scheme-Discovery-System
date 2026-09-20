@@ -1,37 +1,35 @@
 const { ChatGroq } = require("@langchain/groq");
 const { HuggingFaceInferenceEmbeddings } = require("@langchain/community/embeddings/hf");
-const { Pinecone } = require("@pinecone-database/pinecone");
-const { PineconeStore } = require("@langchain/pinecone");
+const { PGVectorStore } = require("@langchain/community/vectorstores/pgvector");
 const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
 const fs = require('fs');
 const path = require('path');
 const { Document } = require("@langchain/core/documents");
 const { PromptTemplate } = require("@langchain/core/prompts");
 const { StringOutputParser } = require("@langchain/core/output_parsers");
+const { Pool } = require("pg");
 
-// Pinecone uses VECTOR_DB_URL as per the user's .env setup
-const pc = new Pinecone({
-  apiKey: process.env.VECTOR_DB_URL,
+// Re-use the existing DATABASE_URL for pgvector
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
 });
-const indexName = process.env.PINECONE_INDEX || 'pravi-schemes';
 
 // Initialize Embeddings
 const embeddings = new HuggingFaceInferenceEmbeddings({
   apiKey: process.env.HUGGINGFACEHUB_API_KEY,
-  // We can use a fast model suitable for QA
   model: "sentence-transformers/all-MiniLM-L6-v2", 
 });
 
 // Initialize Groq LLM
 const llm = new ChatGroq({
   apiKey: process.env.GROQ_API_KEY,
-  modelName: "llama3-8b-8192", // Fast and good for simple RAG
+  modelName: "llama3-8b-8192", 
   temperature: 0
 });
 
-// Ingest markdown documents into Pinecone
+// Ingest markdown documents into Supabase pgvector
 const ingestDocuments = async () => {
-  console.log("Starting ingestion to Pinecone...");
+  console.log("Starting ingestion to Supabase pgvector...");
   const docsDir = path.join(__dirname, '../data/scheme_docs');
   const files = fs.readdirSync(docsDir);
   
@@ -43,7 +41,6 @@ const ingestDocuments = async () => {
     }
   }
 
-  // Split into chunks
   const textSplitter = new RecursiveCharacterTextSplitter({
     chunkSize: 500,
     chunkOverlap: 50,
@@ -51,29 +48,40 @@ const ingestDocuments = async () => {
   
   const docs = await textSplitter.splitDocuments(rawDocs);
 
-  // Store in Pinecone
-  const pineconeIndex = pc.Index(indexName);
-  
-  await PineconeStore.fromDocuments(docs, embeddings, {
-    pineconeIndex,
-    maxConcurrency: 5,
+  // Initialize PGVectorStore pointing to our specific table
+  const vectorStore = await PGVectorStore.initialize(embeddings, {
+    pool: pool,
+    tableName: "scheme_vectors",
+    columns: {
+      idColumnName: "id",
+      vectorColumnName: "embedding",
+      contentColumnName: "content",
+      metadataColumnName: "metadata",
+    }
   });
+  
+  // Clear existing to avoid duplicates in this demo
+  await pool.query('TRUNCATE TABLE scheme_vectors');
 
-  console.log(`✅ Ingested ${docs.length} chunks into Pinecone index: ${indexName}`);
+  await vectorStore.addDocuments(docs);
+  console.log(`✅ Ingested ${docs.length} chunks into Supabase pgvector!`);
 };
 
 // Ask a question using RAG
 const askQuestion = async (question) => {
-  const pineconeIndex = pc.Index(indexName);
-  
-  const vectorStore = await PineconeStore.fromExistingIndex(
-    embeddings,
-    { pineconeIndex }
-  );
+  const vectorStore = await PGVectorStore.initialize(embeddings, {
+    pool: pool,
+    tableName: "scheme_vectors",
+    columns: {
+      idColumnName: "id",
+      vectorColumnName: "embedding",
+      contentColumnName: "content",
+      metadataColumnName: "metadata",
+    }
+  });
 
   const retriever = vectorStore.asRetriever({ k: 3 });
 
-  // Custom Prompt focusing on fallback logic if not found
   const promptTemplate = PromptTemplate.fromTemplate(`
 You are a helpful government assistant for the Pravi platform.
 Answer the user's question based ONLY on the provided context about government schemes.
@@ -89,7 +97,7 @@ Answer:`);
   // Retrieve relevant documents
   const docs = await retriever.invoke(question);
   const contextText = docs.map(doc => doc.pageContent).join("\n\n");
-  const sources = [...new Set(docs.map(doc => doc.metadata.source))]; // Unique sources
+  const sources = [...new Set(docs.map(doc => doc.metadata.source))]; 
 
   // Execute the chain
   const answerChain = promptTemplate.pipe(llm).pipe(new StringOutputParser());

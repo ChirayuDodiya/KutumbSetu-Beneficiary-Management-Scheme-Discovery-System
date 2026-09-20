@@ -46,6 +46,10 @@ app.use('/api', requestRoutes);
 const assistantRoutes = require('./routes/assistantRoutes');
 app.use('/api/assistant', assistantRoutes);
 
+// Document Routes
+const documentRoutes = require('./routes/documentRoutes');
+app.use('/api', documentRoutes);
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
