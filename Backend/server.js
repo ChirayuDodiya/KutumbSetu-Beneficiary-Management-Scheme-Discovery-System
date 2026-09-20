@@ -22,6 +22,10 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK', message: 'API is running' });
 });
 
+// Auth Routes
+const authRoutes = require('./routes/authRoutes');
+app.use('/api/auth', authRoutes);
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
