@@ -22,6 +22,8 @@ CREATE TABLE officers (
     verification_status VARCHAR(50) DEFAULT 'PENDING' CHECK (verification_status IN ('PENDING', 'VERIFIED', 'REJECTED'))
 );
 
+CREATE SEQUENCE IF NOT EXISTS family_id_seq START 1000;
+
 CREATE TABLE families (
     id SERIAL PRIMARY KEY,
     family_id VARCHAR(100) UNIQUE NOT NULL, -- e.g., GJ-FAM-2026-001024

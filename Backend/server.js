@@ -26,6 +26,18 @@ app.get('/api/health', (req, res) => {
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
+// Family Routes
+const familyRoutes = require('./routes/familyRoutes');
+app.use('/api/families', familyRoutes);
+
+// Officer Routes
+const officerRoutes = require('./routes/officerRoutes');
+app.use('/api/officer', officerRoutes);
+
+// Scheme Routes
+const schemeRoutes = require('./routes/schemeRoutes');
+app.use('/api', schemeRoutes); // Because routes are /api/families/:id/schemes and /api/schemes/:id
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

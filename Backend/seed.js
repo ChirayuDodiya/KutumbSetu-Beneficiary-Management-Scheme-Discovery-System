@@ -84,6 +84,45 @@ async function resetAndSeed() {
       UPDATE families SET head_member_id = $1 WHERE id = $2
     `, [resMember1.rows[0].id, familyId]);
 
+    console.log('🌱 Seeding Schemes...');
+    const schemes = [
+      {
+        name: 'Education Support (Demo)',
+        description: 'Financial assistance for students from low-income families.',
+        criteria: { max_income: 150000, member_rules: [{ is_student: true, min_age: 5, max_age: 25 }] },
+        required_documents: ['Income Certificate', 'Student Enrollment Proof', 'Aadhaar Card'],
+        source: 'https://demo.gujarat.gov.in/education'
+      },
+      {
+        name: 'Senior Citizen Health Assistance (Demo)',
+        description: 'Medical support for elderly citizens.',
+        criteria: { max_income: 250000, member_rules: [{ min_age: 60 }] },
+        required_documents: ['Age Proof', 'Income Certificate', 'Medical Bill'],
+        source: 'https://demo.gujarat.gov.in/health'
+      },
+      {
+        name: 'Housing Assistance (Demo)',
+        description: 'Subsidies for building or renovating a house.',
+        criteria: { max_income: 120000, caste_allowed: ['SC', 'ST', 'SEBC'] },
+        required_documents: ['Income Certificate', 'Caste Certificate', 'Land Ownership Document'],
+        source: 'https://demo.gujarat.gov.in/housing'
+      },
+      {
+        name: 'Orphan Child Welfare (Demo)',
+        description: 'Monthly stipend and educational support for orphaned children.',
+        criteria: { member_rules: [{ is_parent_alive: false, max_age: 18 }] },
+        required_documents: ['Death Certificate of Parents', 'Age Proof'],
+        source: 'https://demo.gujarat.gov.in/welfare'
+      }
+    ];
+
+    for (let s of schemes) {
+      await client.query(`
+        INSERT INTO schemes (name, description, criteria, required_documents, source, created_by)
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [s.name, s.description, JSON.stringify(s.criteria), JSON.stringify(s.required_documents), s.source, resCit.rows[0].id]);
+    }
+
     await client.query('COMMIT');
     console.log('✅ Database reset and seeded successfully!');
     
