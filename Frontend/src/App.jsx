@@ -10,6 +10,7 @@ import Signup from './pages/Auth/Signup';
 import CitizenDashboard from './pages/CitizenDashboard';
 import CitizenBenefits from './pages/CitizenBenefits';
 import CitizenRequests from './pages/CitizenRequests';
+import CitizenDocuments from './pages/CitizenDocuments';
 import OfficerDashboard from './pages/OfficerDashboard';
 import OfficerRequests from './pages/OfficerRequests';
 import AdminDashboard from './pages/AdminDashboard';
@@ -32,6 +33,7 @@ function App() {
             {/* Citizen Routes */}
             <Route element={<ProtectedRoute allowedRoles={['CITIZEN']} />}>
               <Route path="citizen/dashboard" element={<CitizenDashboard />} />
+              <Route path="citizen/documents" element={<CitizenDocuments />} />
               <Route path="citizen/benefits" element={<CitizenBenefits />} />
               <Route path="citizen/requests" element={<CitizenRequests />} />
             </Route>

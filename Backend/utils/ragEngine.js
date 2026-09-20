@@ -87,6 +87,7 @@ You are a helpful government assistant for the Pravi platform.
 Answer the user's question based ONLY on the provided context about government schemes.
 If the answer is not in the context, exactly say: "I couldn't find this information in the official scheme guidelines."
 Do not make up requirements, eligibility criteria, or verdicts.
+Do not use any markdown formatting like ** or # in your response, use plain text only.
 
 Context: {context}
 
@@ -113,10 +114,10 @@ Answer:`);
 };
 
 // Ingest a single new markdown file
-const ingestSingleFile = async (filePath, originalName) => {
-  console.log(`Starting ingestion for single file: ${originalName}`);
+const ingestSingleFile = async (filePath, schemeName) => {
+  console.log(`Starting ingestion for single file: ${schemeName}`);
   const content = fs.readFileSync(filePath, 'utf8');
-  const rawDoc = new Document({ pageContent: content, metadata: { source: originalName } });
+  const rawDoc = new Document({ pageContent: content, metadata: { source: schemeName } });
 
   const textSplitter = new RecursiveCharacterTextSplitter({
     chunkSize: 500,
@@ -137,11 +138,18 @@ const ingestSingleFile = async (filePath, originalName) => {
   });
 
   await vectorStore.addDocuments(docs);
-  console.log(`✅ Ingested ${docs.length} chunks from ${originalName} into Supabase pgvector!`);
+  console.log(`✅ Ingested ${docs.length} chunks from ${schemeName} into Supabase pgvector!`);
+};
+
+// Delete vectors by scheme name
+const deleteVectorsByScheme = async (schemeName) => {
+  await pool.query("DELETE FROM scheme_vectors WHERE metadata->>'source' = $1", [schemeName]);
+  console.log('Deleted vectors for', schemeName);
 };
 
 module.exports = {
   ingestDocuments,
   ingestSingleFile,
-  askQuestion
+  askQuestion,
+  deleteVectorsByScheme
 };

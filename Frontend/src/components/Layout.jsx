@@ -33,6 +33,8 @@ const Layout = () => {
                     {user.role === 'CITIZEN' && (
                       <>
                         <Link to="/citizen/dashboard" className="text-gray-300 hover:text-white text-sm font-medium">My Family</Link>
+                        <Link to="/citizen/documents" className="text-gray-300 hover:text-white text-sm font-medium">My Documents</Link>
+                        <Link to="/citizen/benefits" className="text-gray-300 hover:text-white text-sm font-medium">Explore Benefits</Link>
                         <Link to="/citizen/requests" className="text-gray-300 hover:text-white text-sm font-medium">My Applications</Link>
                       </>
                     )}
@@ -48,8 +50,8 @@ const Layout = () => {
                   </div>
                   <div className="flex items-center space-x-2 text-sm border-l border-blue-700 pl-4">
                     <UserCircle className="h-5 w-5 text-gray-300" />
-                    <span className="font-medium text-gray-100 hidden sm:block">
-                      {user.name} ({user.role === 'OFFICER' ? 'Officer' : 'Citizen'})
+                    <span className="font-medium text-white">
+                      {user.name} ({user.role === 'ADMIN' ? 'Admin' : (user.role === 'OFFICER' ? 'Officer' : 'Citizen')})
                     </span>
                   </div>
                   <button 

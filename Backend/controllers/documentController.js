@@ -50,8 +50,7 @@ exports.uploadDocument = async (req, res) => {
     await s3.send(command);
 
     // Get public URL (Supabase pattern: https://<project>.supabase.co/storage/v1/object/public/<bucket>/<key>)
-    // The SUPABASE_API_URL is https://<project>.storage.supabase.co/storage/v1/s3
-    const projectUrl = process.env.SUPABASE_API_URL.replace('.storage.supabase.co/storage/v1/s3', '.supabase.co');
+    const projectUrl = process.env.SUPABASE_API_URL.replace('/storage/v1/s3', '');
     const fileUrl = `${projectUrl}/storage/v1/object/public/documents/${filePath}`;
 
     // Insert into DB

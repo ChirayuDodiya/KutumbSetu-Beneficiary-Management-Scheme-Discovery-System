@@ -11,7 +11,9 @@ router.use(authenticate); // Both CITIZEN and OFFICER can access these
 router.get('/families/:id/schemes', schemeController.getApplicableSchemes);
 router.get('/schemes/:id', schemeController.getSchemeById);
 
-// Admin Route
+// Admin Routes
+router.get('/schemes', requireRole('ADMIN'), schemeController.getAllSchemes);
 router.post('/schemes', requireRole('ADMIN'), upload.single('file'), schemeController.createScheme);
+router.delete('/schemes/:id', requireRole('ADMIN'), schemeController.deleteScheme);
 
 module.exports = router;

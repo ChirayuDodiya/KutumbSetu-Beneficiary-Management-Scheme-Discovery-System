@@ -80,7 +80,9 @@ exports.createScheme = async (req, res) => {
     );
 
     if (file) {
-      await ingestSingleFile(file.path, file.originalname);
+      await ingestSingleFile(file.path, name);
+      const fs = require('fs');
+      fs.unlinkSync(file.path); // Delete the temporary multer file
     }
 
     res.status(201).json({ status: 'success', data: result.rows[0] });
@@ -89,3 +91,25 @@ exports.createScheme = async (req, res) => {
     res.status(500).json({ status: 'error', message: 'Internal server error' });
   }
 };
+  
+// Delete Scheme
+exports.deleteScheme = async (req, res) => {
+  try {
+    const result = await db.query('DELETE FROM schemes WHERE id = $1 RETURNING name', [req.params.id]);
+    if (result.rows.length > 0) {
+      const { deleteVectorsByScheme } = require('../utils/ragEngine');
+      await deleteVectorsByScheme(result.rows[0].name);
+    }
+    res.json({status: 'success'});
+  } catch (e) {
+    res.status(500).json({error: e.message});
+  }
+};
+  
+// Get all schemes  
+exports.getAllSchemes = async (req, res) => {  
+  try {  
+    const result = await db.query('SELECT id, name, description FROM schemes');  
+    res.json({status: 'success', data: result.rows});  
+  } catch (e) { res.status(500).json({error: e.message}); }  
+}; 
