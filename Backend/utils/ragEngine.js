@@ -68,7 +68,7 @@ const ingestDocuments = async () => {
 };
 
 // Ask a question using RAG
-const askQuestion = async (question) => {
+const askQuestion = async (question, language = 'en') => {
   const vectorStore = await PGVectorStore.initialize(embeddings, {
     pool: pool,
     tableName: "scheme_vectors",
@@ -82,12 +82,18 @@ const askQuestion = async (question) => {
 
   const retriever = vectorStore.asRetriever({ k: 3 });
 
+  const langInstruction = language === 'gu' 
+    ? "IMPORTANT: You MUST write your final answer entirely in the Gujarati (ગુજરાતી) language."
+    : "You must write your final answer in English.";
+
   const promptTemplate = PromptTemplate.fromTemplate(`
 You are a helpful government assistant for the Pravi platform.
 Answer the user's question based ONLY on the provided context about government schemes.
 If the answer is not in the context, exactly say: "I couldn't find this information in the official scheme guidelines."
 Do not make up requirements, eligibility criteria, or verdicts.
 Do not use any markdown formatting like ** or # in your response, use plain text only.
+
+${langInstruction}
 
 Context: {context}
 
@@ -102,15 +108,17 @@ Answer:`);
 
   // Execute the chain
   const answerChain = promptTemplate.pipe(llm).pipe(new StringOutputParser());
-  const answer = await answerChain.invoke({
+  let answer = await answerChain.invoke({
     context: contextText,
     input: question
   });
 
-  return {
-    answer,
-    sources
-  };
+  if (sources.length > 0) {
+    const sourceLabel = language === 'gu' ? 'સ્ત્રોત:' : 'Source:';
+    answer += `\n\n(${sourceLabel} ${sources.join(', ')})`;
+  }
+
+  return { answer, sources };
 };
 
 // Ingest a single new markdown file

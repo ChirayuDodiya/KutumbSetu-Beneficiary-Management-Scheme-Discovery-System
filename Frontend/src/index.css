@@ -1,1 +1,5 @@
 @import "tailwindcss";
+
+body { top: 0 !important; }
+.skiptranslate iframe { display: none !important; }
+#goog-gt-tt { display: none !important; }

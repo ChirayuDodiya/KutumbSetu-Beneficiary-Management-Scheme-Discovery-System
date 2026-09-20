@@ -1,11 +1,26 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { ShieldCheck, LogOut, UserCircle } from 'lucide-react';
+import { ShieldCheck, LogOut, UserCircle, Globe } from 'lucide-react';
 import AssistantWidget from './AssistantWidget';
 
 const Layout = () => {
   const { user, logout } = useContext(AuthContext);
+  const [lang, setLang] = useState(localStorage.getItem('lang') || 'en');
+
+  const toggleLanguage = () => {
+    const newLang = lang === 'en' ? 'gu' : 'en';
+    setLang(newLang);
+    localStorage.setItem('lang', newLang);
+    
+    // Set Google Translate Cookie
+    const transVal = newLang === 'gu' ? '/en/gu' : '/en/en';
+    document.cookie = `googtrans=${transVal}; path=/`;
+    document.cookie = `googtrans=${transVal}; path=/; domain=${window.location.hostname}`;
+    
+    // Reload to apply Google Translate to DOM
+    window.location.reload();
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
@@ -27,6 +42,15 @@ const Layout = () => {
 
             {/* Navigation / User Actions */}
             <div className="flex items-center space-x-6">
+              
+              <button 
+                onClick={toggleLanguage} 
+                className="flex items-center space-x-1 text-sm bg-blue-800 hover:bg-blue-700 px-3 py-1.5 rounded transition border border-blue-700"
+              >
+                <Globe className="h-4 w-4" />
+                <span className="font-bold">{lang === 'en' ? 'English' : 'ગુજરાતી'}</span>
+              </button>
+
               {user ? (
                 <>
                   <div className="hidden md:flex items-center space-x-4 mr-4">
@@ -48,6 +72,7 @@ const Layout = () => {
                       <Link to="/admin/dashboard" className="text-gray-300 hover:text-white text-sm font-medium">Admin Portal</Link>
                     )}
                   </div>
+
                   <div className="flex items-center space-x-2 text-sm border-l border-blue-700 pl-4">
                     <UserCircle className="h-5 w-5 text-gray-300" />
                     <span className="font-medium text-white">

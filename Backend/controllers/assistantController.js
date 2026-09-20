@@ -1,13 +1,13 @@
 const { askQuestion, ingestDocuments } = require('../utils/ragEngine');
 
 exports.askAssistant = async (req, res) => {
-  const { question } = req.body;
+  const { question, language = 'en' } = req.body;
   if (!question) {
     return res.status(400).json({ status: 'error', message: 'Question is required' });
   }
 
   try {
-    const result = await askQuestion(question);
+    const result = await askQuestion(question, language);
     res.status(200).json({ status: 'success', data: result });
   } catch (err) {
     console.error("RAG Error:", err);
