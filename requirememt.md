@@ -105,7 +105,7 @@ These can be listed under **Future Scope**.
 
 # 4. User Roles
 
-The system has two primary roles.
+The system has three primary roles.
 
 ## 4.1 Citizen
 
@@ -141,6 +141,18 @@ A government officer can:
 
 ---
 
+## 4.3 Admin
+
+An administrator can:
+
+* Log in securely
+* Add new government schemes to the system
+* Update existing scheme rules and criteria
+* Manage global settings
+* Oversee all officers and citizens
+
+---
+
 # 5. Authentication & Authorization
 
 ## 5.1 Login
@@ -164,7 +176,8 @@ Authentication
   ↓
 User
   ├── CITIZEN → Citizen Dashboard
-  └── OFFICER → Officer Dashboard
+  ├── OFFICER → Officer Dashboard
+  └── ADMIN   → Admin Dashboard
 ```
 
 ### Security requirement
@@ -895,6 +908,7 @@ Role:
 ```text
 CITIZEN
 OFFICER
+ADMIN
 ```
 
 ### officers
@@ -954,6 +968,7 @@ description
 criteria
 required_documents
 source
+created_by
 ```
 
 ### benefit_requests
@@ -1038,22 +1053,22 @@ POST /assistant/ask
 
 # 25. Authorization Matrix
 
-| Action                     | Citizen |  Officer |
-| -------------------------- | ------: | -------: |
-| Create account             |       ✅ |        ✅ |
-| Login                      |       ✅ |        ✅ |
-| Create family              |       ✅ |        ❌ |
-| Add members                |       ✅ |        ❌ |
-| View own family            |       ✅ |        ❌ |
-| View jurisdiction families |       ❌ |        ✅ |
-| Approve family             |       ❌ |        ✅ |
-| Reject family              |       ❌ |        ✅ |
-| View potential benefits    |       ✅ |        ✅ |
-| Request benefit            |       ✅ |        ❌ |
-| Approve benefit            |       ❌ |        ✅ |
-| Reject benefit             |       ❌ |        ✅ |
-| Ask scheme assistant       |       ✅ | Optional |
-| Manage schemes             |       ❌ |    ❌ MVP |
+| Action                     | Citizen |  Officer |    Admin |
+| -------------------------- | ------: | -------: | -------: |
+| Create account             |       ✅ |        ✅ |        ❌ |
+| Login                      |       ✅ |        ✅ |        ✅ |
+| Create family              |       ✅ |        ❌ |        ❌ |
+| Add members                |       ✅ |        ❌ |        ❌ |
+| View own family            |       ✅ |        ❌ |        ❌ |
+| View jurisdiction families |       ❌ |        ✅ |        ✅ |
+| Approve family             |       ❌ |        ✅ |        ❌ |
+| Reject family              |       ❌ |        ✅ |        ❌ |
+| View potential benefits    |       ✅ |        ✅ |        ✅ |
+| Request benefit            |       ✅ |        ❌ |        ❌ |
+| Approve benefit            |       ❌ |        ✅ |        ❌ |
+| Reject benefit             |       ❌ |        ✅ |        ❌ |
+| Ask scheme assistant       |       ✅ | Optional | Optional |
+| Manage schemes             |       ❌ |        ❌ |        ✅ |
 
 ---
 

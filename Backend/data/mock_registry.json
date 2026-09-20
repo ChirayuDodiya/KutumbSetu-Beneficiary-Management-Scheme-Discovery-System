@@ -1,0 +1,20 @@
+[
+  {
+    "employee_id": "GJ-REV-101",
+    "name": "Amit Patel",
+    "department": "Revenue",
+    "designation": "Talati",
+    "village": "Ranip",
+    "taluka": "Ahmedabad City",
+    "district": "Ahmedabad"
+  },
+  {
+    "employee_id": "GJ-REV-102",
+    "name": "Sunita Sharma",
+    "department": "Revenue",
+    "designation": "Talati",
+    "village": "Vastrapur",
+    "taluka": "Ahmedabad City",
+    "district": "Ahmedabad"
+  }
+]
